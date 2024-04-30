@@ -22,12 +22,6 @@ import java.util.*;
 
 public class Helper {
 
-    private static final String regex = ":_:";
-    private static final String JDBC_SERVER = "jdbc:mysql://localhost:3306/";
-    private static final String USER = "root";
-    private static final String PWD = "mysql";
-
-
     public boolean validSchema(MultipartFile xmlFile) {
         try {
             InputStream inputStream = xmlFile.getInputStream();

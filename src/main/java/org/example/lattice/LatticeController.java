@@ -1,6 +1,7 @@
 package org.example.lattice;
 
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -8,6 +9,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,5 +34,10 @@ public class LatticeController {
     @PostMapping("/{dbName}/refreshLattice")
     public String refreshLattice(@PathVariable String dbName) {
         return latticeService.refreshLattice(dbName);
+    }
+
+    @GetMapping("/{dbName}/selectTables")
+    public List<Map<String, Object>> selectTables(@RequestBody Map<String, Boolean> tables, @PathVariable String dbName) {
+        return latticeService.selectTables(dbName, tables);
     }
 }

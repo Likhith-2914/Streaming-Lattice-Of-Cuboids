@@ -1,14 +1,73 @@
 package org.example.lattice;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.sql.*;
+import java.util.*;
+
 
 public class QueryProcessor {
     public static final String regex = ":_:";
+    private static final String JDBC_SERVER = "jdbc:mysql://localhost:3306/";
+    private static final String USER = "root";
+    private static final String PWD = "mysql";
+
+
+    public List<Map<String, Object>> selectTables(String dbName, Map<String, Boolean> cols) {
+        List<Map<String, Object>> table = new ArrayList<>();
+        try{
+
+            String JDBC_URL = JDBC_SERVER + dbName;
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection(JDBC_URL, USER, PWD);
+
+            List<String> lattice_columns = getLatticeDetails(connection);
+
+            List<String> selectedCols = new ArrayList<>();
+            for(String col: lattice_columns) {
+                String[] col_details = col.split(regex);
+                if(cols.get(col_details[1])) selectedCols.add(col_details[0]);
+            }
+
+
+            StringBuilder tableName = new StringBuilder("lattice_");
+            if(selectedCols.isEmpty()) tableName.append("apex");
+            else {
+                for (String colCode : selectedCols) {
+                    tableName.append(colCode).append("_");
+                }
+                tableName.append("facts");
+            }
+
+            String sql = "SELECT * FROM " + tableName;
+
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            int colCount = resultSetMetaData.getColumnCount();
+
+            while(rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+
+                for (int i = 1; i <= colCount; i++) {
+                    String columnName = resultSetMetaData.getColumnName(i);
+                    Object columnValue = rs.getObject(i);
+                    if(!(tableName.toString().equals("lattice_apex")
+                            && columnName.equals("id"))) row.put(columnName, columnValue);
+                }
+
+                table.add(row);
+            }
+
+            return table;
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+
+    }
 
     public static List<String> getLatticeDetails(Connection connection) {
         List<String> res = new ArrayList<>();
@@ -103,6 +162,7 @@ public class QueryProcessor {
             return res;
         }
     }
+
 
 
 }

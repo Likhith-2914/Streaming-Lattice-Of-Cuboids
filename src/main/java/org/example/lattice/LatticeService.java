@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -51,6 +52,9 @@ public class LatticeService {
         return dml.updateLattice(dbName);
     }
 
+    public List<Map<String, Object>> selectTables(String dbName, Map<String, Boolean> columns) {
+        return queryProcessor.selectTables(dbName, columns);
+    }
 
 
 

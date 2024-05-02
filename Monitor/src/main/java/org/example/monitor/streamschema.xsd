@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="tick">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="tick_type" type="xs:string" />
+                <xs:element name="tick_count" type="xs:string" />
+                <xs:element name="tick_units" type="xs:string" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="velocity">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="velocity_type" type="xs:string" />
+                <xs:element name="velocity_count" type="xs:string" />
+                <xs:element name="velocity_units" type="xs:string" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+
+    <xs:element name="streamdefination">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="databaseName" type="xs:string"/>
+                <xs:element minOccurs="1" ref="tick"/>
+                <xs:element minOccurs="1" ref="velocity"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

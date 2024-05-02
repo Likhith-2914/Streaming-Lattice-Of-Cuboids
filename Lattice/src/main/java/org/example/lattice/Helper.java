@@ -22,16 +22,16 @@ import java.util.*;
 
 public class Helper {
 
-    public boolean validSchema(MultipartFile xmlFile) {
+    public static boolean validSchema(MultipartFile xmlFile, String schemaLocation) {
         try {
             InputStream inputStream = xmlFile.getInputStream();
-            return validateXMLAgainstXSD(inputStream, new File("src/main/java/org/example/lattice/schema.xsd"));
+            return validateXMLAgainstXSD(inputStream, new File(schemaLocation));
 
         } catch (IOException e) {
             return false;
         }
     }
-    public File convertMultipartFileToFile(MultipartFile file) throws IOException {
+    public static File convertMultipartFileToFile(MultipartFile file) throws IOException {
         File tempFile = File.createTempFile("tempfile", file.getOriginalFilename());
         file.transferTo(tempFile);
         return tempFile;

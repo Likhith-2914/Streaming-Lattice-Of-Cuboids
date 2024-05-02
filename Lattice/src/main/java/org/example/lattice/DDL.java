@@ -7,10 +7,7 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 public class DDL {
@@ -154,8 +151,80 @@ public class DDL {
         return "success";
     }
 
+    public static String storeStreamInfo(File streamXML) {
+
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(streamXML);
+
+            Element root = document.getDocumentElement();
+            String databaseName = root.getElementsByTagName("databaseName").item(0).getTextContent();
+            NodeList tick = root.getElementsByTagName("tick");
+            String tickType = ((Element) tick.item(0)).getElementsByTagName("tick_type").item(0).getTextContent();
+            String tickCount = ((Element) tick.item(0)).getElementsByTagName("tick_count").item(0).getTextContent();
+            String tickUnits = ((Element) tick.item(0)).getElementsByTagName("tick_units").item(0).getTextContent();
+            NodeList velocity = root.getElementsByTagName("velocity");
+            String velocityType = ((Element) velocity.item(0)).getElementsByTagName("velocity_type").item(0).getTextContent();
+            String velocityCount = ((Element) velocity.item(0)).getElementsByTagName("velocity_count").item(0).getTextContent();
+            String velocityUnits = ((Element) velocity.item(0)).getElementsByTagName("velocity_units").item(0).getTextContent();
+
+            String res = insertDataIntoDatabase(databaseName, tickType, tickCount, tickUnits, velocityType, velocityCount, velocityUnits);
+            if(!res.equalsIgnoreCase("success")) return res;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failure\n"+e.getMessage();
+        }
+        return "success";
+    }
+
+    private static String insertDataIntoDatabase(String databaseName, String tickType, String tickCount, String tickUnits, String velocityType, String velocityCount, String velocityUnits) {
+        String JDBC_URL = JDBC_SERVER + databaseName;
 
 
+        try (Connection connection = DriverManager.getConnection(JDBC_URL, USER, PWD)) {
+            String res = createTableIfNotExists(connection);
+            if(!res.equalsIgnoreCase("success")) return res;
+
+            String sql = "INSERT INTO streaming_properties (property, type, count, units) VALUES (?, ?, ?, ?), (?, ?, ?, ?) " +
+                    "ON DUPLICATE KEY UPDATE type = VALUES(type), count = VALUES(count), units = VALUES(units)";
+
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, "tick");
+                statement.setString(2, tickType);
+                statement.setString(3, tickCount);
+                statement.setString(4, tickUnits);
+                statement.setString(5, "velocity");
+                statement.setString(6, velocityType);
+                statement.setString(7, velocityCount);
+                statement.setString(8, velocityUnits);
+                statement.executeUpdate();
+            }
+
+            return "success";
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "Failed to insert\n"+e.getMessage();
+        }
+    }
+
+    private static String createTableIfNotExists(Connection connection) throws SQLException {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS streaming_properties ("
+                + "property VARCHAR(30) PRIMARY KEY,"
+                + "type VARCHAR(30) NOT NULL,"
+                + "count INT NOT NULL,"
+                + "units VARCHAR(30) NOT NULL"
+                + ")";
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(createTableSQL);
+            return "success";
+        }
+        catch (Exception e) {
+            return "Failed to create stream_properties database\n"+e.getMessage();
+        }
+    }
 
     private static String buildLattice(Connection connection) {
         Helper helper = new Helper();

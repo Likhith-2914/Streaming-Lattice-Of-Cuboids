@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <streamdefination xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:noNamespaceSchemaLocation="streamschema.xsd"
->
-    <databaseName> marketdata </databaseName>
+                  xsi:noNamespaceSchemaLocation="streamSchema.xsd">
+    <databaseName>market_db</databaseName>
     <tick>
-        <tick_type>logical</tick_type>
+        <tick_type>physical</tick_type>
         <tick_count>5</tick_count>
         <tick_units>seconds</tick_units>
     </tick  >
     <velocity>
-        <velocity_type>logical</velocity_type>
+        <velocity_type>physical</velocity_type>
         <velocity_count>2</velocity_count>
         <velocity_units>seconds</velocity_units>
     </velocity>

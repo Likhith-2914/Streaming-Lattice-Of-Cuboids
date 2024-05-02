@@ -18,20 +18,19 @@ public class LatticeService {
     private final String USER = "root";
     private final String PWD = "mysql";
 
-    private final Helper helper = new Helper();
-    private final DDL ddl = new DDL();
     private final DML dml = new DML();
     private final QueryProcessor queryProcessor = new QueryProcessor();
 
     public String processStarSchema(MultipartFile file) {
 
-        if(!helper.validSchema(file)) return "Invalid XML file !";
+        if(!Helper.validSchema(file, "src/main/java/org/example/lattice/starSchema.xsd"))
+            return "Invalid XML file !";
 
         try {
 
-            File xml = helper.convertMultipartFileToFile(file);
+            File xml = Helper.convertMultipartFileToFile(file);
 
-            String res = ddl.generateDimensionsAndLattices(xml);
+            String res = DDL.generateDimensionsAndLattices(xml);
             if(!res.equalsIgnoreCase("success")) return res;
 
         }
@@ -43,6 +42,28 @@ public class LatticeService {
 
         return "success";
     }
+
+    public String processStreamXML(MultipartFile file) {
+        if(!Helper.validSchema(file, "src/main/java/org/example/lattice/streamSchema.xsd"))
+            return "Invalid XML file !";
+
+        try {
+
+            File xml = Helper.convertMultipartFileToFile(file);
+
+            String res = DDL.storeStreamInfo(xml);
+            if(!res.equalsIgnoreCase("success")) return res;
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return "Failure!\n"+e.getMessage();
+        }
+
+        return "success";
+    }
+
+
 
     public String loadDataFromTuple(String dbname, Map<String, String> data) {
         return dml.loadDataFromTuple(dbname, data);

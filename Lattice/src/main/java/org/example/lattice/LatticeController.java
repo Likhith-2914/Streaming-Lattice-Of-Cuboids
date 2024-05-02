@@ -20,9 +20,13 @@ public class LatticeController {
 
     private final LatticeService latticeService;
 
-    @PostMapping("/uploadStarSchema")
-    public String processXML(@RequestBody MultipartFile file) {
-        return latticeService.processStarSchema(file);
+    @PostMapping("/uploadFiles")
+    public String processXML(@RequestBody MultipartFile starSchema, @RequestBody MultipartFile streamSchema) {
+        String res = latticeService.processStarSchema(starSchema);
+        if(!res.equalsIgnoreCase("success")) return res;
+        res = latticeService.processStreamXML(streamSchema);
+        if(!res.equalsIgnoreCase("success")) return res;
+        return "success";
     }
 
     @PostMapping("/{dbName}/uploadDataFromTuple")

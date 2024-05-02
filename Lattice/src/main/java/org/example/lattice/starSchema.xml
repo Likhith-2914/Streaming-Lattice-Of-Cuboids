@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <starSchema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:noNamespaceSchemaLocation="schema.xsd">
+            xsi:noNamespaceSchemaLocation="starSchema.xsd">
     <databaseName>market_db</databaseName>
     <dimension>
         <name>dim_cust</name>

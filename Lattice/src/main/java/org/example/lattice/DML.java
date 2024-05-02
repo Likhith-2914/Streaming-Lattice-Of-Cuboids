@@ -1,6 +1,7 @@
 package org.example.lattice;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +13,6 @@ public class DML {
     private static final String JDBC_SERVER = "jdbc:mysql://localhost:3306/";
     private static final String USER = "root";
     private static final String PWD = "mysql";
-
 
     public String loadDataFromTuple(String dbName, Map<String, String> tuple) {
 
@@ -49,18 +49,20 @@ public class DML {
 
             List<String> lattice_cols = QueryProcessor.getLatticeDetails(connection);
             List<String> facts = QueryProcessor.getFacts(connection);
+            Map<String, Object> velocity = QueryProcessor.getStreamProperty(connection, "velocity");
+
             String res = "";
             int n = lattice_cols.size();
             for(int i = 0; i < n; i += 1) {
                 System.out.println("Level " + i);
-                res = updateLatticeForALevel(connection, lattice_cols, facts, i);
+                res = updateLatticeForALevel(connection, lattice_cols, facts, i, velocity);
                 if(!res.equalsIgnoreCase("success")) return res+"\nAt Level"+i;
             }
 
-            res = updateLatticeApex(connection, facts);
+            res = updateLatticeApex(connection, facts, velocity);
             if(!res.equalsIgnoreCase("success")) return res;
 
-            res = deleteFromDataLoader(connection);
+            res = deleteFromDataLoader(connection, velocity);
             if(!res.equalsIgnoreCase("success")) return res;
 
         } catch (Exception e) {
@@ -72,7 +74,21 @@ public class DML {
 
     }
 
-    private static String updateLatticeForALevel(Connection connection, List<String> latticeCols, List<String> facts, int level) {
+    public void deleteDatabase(String dbName) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection(JDBC_SERVER, USER, PWD);
+            String sql = "DROP DATABASE " + dbName;
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+            connection.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String updateLatticeForALevel(Connection connection, List<String> latticeCols, List<String> facts, int level, Map<String, Object> velocity) {
         int n = latticeCols.size();
 
         List<List<String>> allCombs = Helper.getCombinations(latticeCols, n - level);
@@ -92,7 +108,13 @@ public class DML {
             }
             selectQuery.deleteCharAt(selectQuery.length()-1);
             selectQuery.deleteCharAt(selectQuery.length()-1);
-            selectQuery.append(" FROM data_loader ");
+            selectQuery.append(" FROM (SELECT * FROM data_loader ");
+
+            if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
+                selectQuery.append("ORDER BY id LIMIT ").append(velocity.get("count").toString());
+                selectQuery.append(") AS velocity_table ");
+            }
+
             selectQuery.append("GROUP BY ");
             for (String col : cols) {
                 String colName = col.split(regex)[1];
@@ -100,7 +122,6 @@ public class DML {
             }
             selectQuery.deleteCharAt(selectQuery.length()-1);
             selectQuery.deleteCharAt(selectQuery.length()-1);
-
 
 
             StringBuilder tableName = new StringBuilder("lattice_");
@@ -192,7 +213,11 @@ public class DML {
                     for (String fact : facts) {
                         String agg = fact.split(regex)[0].toLowerCase();
                         String factName = fact.split(regex)[1];
-                        updateStatement.setObject(i, Helper.mergeAgg(existingRec.get(agg+"_"+factName), resultSet.getDouble(agg+"_"+factName), agg));
+                        if(!agg.equalsIgnoreCase("avg"))
+                            updateStatement.setObject(i, Helper.mergeAgg(existingRec.get(agg+"_"+factName), resultSet.getDouble(agg+"_"+factName), agg));
+                        else
+                            updateStatement.setObject(i, Helper.movingAvg(existingRec.get("avg"+"_"+factName), (existingRec.get("count"+"_"+factName)),
+                                    resultSet.getDouble("avg"+"_"+factName), resultSet.getDouble("count"+"_"+factName)));
                         i += 1;
                     }
                     updateStatement.executeUpdate();
@@ -213,7 +238,7 @@ public class DML {
 
 
     }
-    private static String updateLatticeApex(Connection connection, List<String> facts) {
+    private static String updateLatticeApex(Connection connection, List<String> facts, Map<String, Object> velocity) {
 
         StringBuilder selectQuery = new StringBuilder("SELECT ");
         for (String fact : facts) {
@@ -223,7 +248,12 @@ public class DML {
         }
         selectQuery.deleteCharAt(selectQuery.length()-1);
         selectQuery.deleteCharAt(selectQuery.length()-1);
-        selectQuery.append(" FROM data_loader");
+        selectQuery.append(" FROM (SELECT * FROM data_loader ");
+
+        if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
+            selectQuery.append("ORDER BY id LIMIT ").append(velocity.get("count").toString());
+            selectQuery.append(") AS velocity_table");
+        }
 
 
         StringBuilder updateQuery = new StringBuilder("INSERT INTO ").append("lattice_apex").append(" (id, ");
@@ -298,13 +328,16 @@ public class DML {
             return "failed to update apex\n"+e.getMessage();
         }
     }
-    private static String deleteFromDataLoader(Connection connection) {
+    private static String deleteFromDataLoader(Connection connection, Map<String, Object> velocity) {
 
         try {
-            String sql = "DELETE FROM data_loader";
+            StringBuilder sql = new StringBuilder("DELETE FROM data_loader ");
+            if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
+                sql.append("ORDER BY id LIMIT ").append(velocity.get("count"));
+            }
 
             Statement stmt = connection.createStatement();
-            stmt.executeUpdate(sql);
+            stmt.executeUpdate(sql.toString());
 
             return "success";
 
@@ -327,7 +360,7 @@ public class DML {
                 String idCol = primaryKeyResultSet.getString("COLUMN_NAME");
 
                 //get all the lattice columns
-                List<String> dim_lattice_columns = QueryProcessor.getLatticeDetailsOfDimension(dimension, connection);
+                List<String> dim_lattice_columns = QueryProcessor.getLatticeDetailsOfDimension(connection, dimension);
 
                 if(dim_lattice_columns.isEmpty()) continue;
 
@@ -371,10 +404,8 @@ public class DML {
             for(String fact: facts) {
                 insertQuery.append(fact).append(", ");
             }
-            insertQuery.deleteCharAt(insertQuery.length()-1);
-            insertQuery.deleteCharAt(insertQuery.length()-1);
 
-            insertQuery.append(") VALUES (");
+            insertQuery.append("time) VALUES (");
 
             for(int j = 0; j < lattice_columns.size(); j += 1) {
                 insertQuery.append('?');
@@ -384,10 +415,7 @@ public class DML {
                 insertQuery.append('?');
                 insertQuery.append(", ");
             }
-            insertQuery.deleteCharAt(insertQuery.length()-1);
-            insertQuery.deleteCharAt(insertQuery.length()-1);
-
-            insertQuery.append(");");
+            insertQuery.append("?);");
 
             //prepare the update statement
             PreparedStatement stmt = connection.prepareStatement(insertQuery.toString());
@@ -398,17 +426,25 @@ public class DML {
             for(int j = 1; j<=facts.size(); j++) {
                 stmt.setObject(j+lattice_columns.size(), fact_values.get(facts.get(j-1)));
             }
+            stmt.setObject(facts.size()+lattice_columns.size()+1, LocalDateTime.now());
             //execute update
             stmt.executeUpdate();
 
             return "success";
 
 
-        } catch (Exception e) {
+        } catch (SQLIntegrityConstraintViolationException e) {
+            e.printStackTrace();
+            return "Invalid data provided.. Metadata for at least one dimension is not specified\n" + e.getMessage();
+
+        }
+        catch (Exception e) {
             e.printStackTrace();
             return "Failed " + e.getMessage();
         }
 
     }
+
+
 
 }

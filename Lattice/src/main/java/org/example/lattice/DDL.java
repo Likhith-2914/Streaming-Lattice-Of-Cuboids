@@ -11,10 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DDL {
     private static final String regex = ":_:";
@@ -23,7 +20,7 @@ public class DDL {
     private static final String PWD = "mysql";
 
 
-    public String generateDimensionsAndLattices(File xmlFile) {
+    public static String generateDimensionsAndLattices(File xmlFile) {
         Map<String, String[]> tables = new HashMap<>();
         List<String> lattice_columns = new ArrayList<>();
 
@@ -92,14 +89,18 @@ public class DDL {
                 facts.add(name + " float");
 
             }
-            String[] cols = new String[lattice_columns.size()+facts.size()];
+            int n = lattice_columns.size()+facts.size()+3;
+            String[] cols = new String[n];
             for(int i = 0;i<lattice_columns.size();i++){
                 String[] tmp = lattice_columns.get(i).split(regex);
-                cols[i] = tmp[0] + " " + tmp[1];
+                cols[i] = tmp[0] + " " + tmp[1] + " NOT NULL";
             }
             for(int i = 0; i < facts.size(); i++) {
-                cols[i+lattice_columns.size()] = facts.get(i);
+                cols[i+lattice_columns.size()] = facts.get(i) + " NOT NULL";
             }
+            cols[n-3] = "time DATETIME";
+            cols[n-2] = "id INT AUTO_INCREMENT";
+            cols[n-1] = "PRIMARY KEY (id)";
 
             //get data loader table
             tables.put("data_loader", cols);
@@ -120,16 +121,29 @@ public class DDL {
             tables.put("fact_agg", fact_agg);
 
             res  = createTables(connection, tables);
-            if(!res.equalsIgnoreCase("success")) return res;
+            if(!res.equalsIgnoreCase("success")) {
+                new DML().deleteDatabase(dbName);
+                return res;
+            }
 
             res  = updateLatticeLookUp(connection, lattice_columns);
-            if(!res.equalsIgnoreCase("success")) return res;
+            if(!res.equalsIgnoreCase("success")) {
+                new DML().deleteDatabase(dbName);
+                return res;
+            }
 
             res  = updateFactAgg(connection, factList);
-            if(!res.equalsIgnoreCase("success")) return res;
+            if(!res.equalsIgnoreCase("success")) {
+                new DML().deleteDatabase(dbName);
+                return res;
+            }
 
             res  = buildLattice(connection);
-            if(!res.equalsIgnoreCase("success")) return res;
+            if(!res.equalsIgnoreCase("success")) {
+                new DML().deleteDatabase(dbName);
+                return res;
+            }
+
 
 
         } catch (Exception e) {
@@ -139,6 +153,9 @@ public class DDL {
 
         return "success";
     }
+
+
+
 
     private static String buildLattice(Connection connection) {
         Helper helper = new Helper();
@@ -253,6 +270,9 @@ public class DDL {
     private static String updateFactAgg(Connection connection, NodeList factList) {
 
         String sql = "INSERT INTO fact_agg (fact, agg) VALUES (?, ?)";
+        List<String> available_aggs = Arrays.asList("sum", "avg", "count", "max", "min");
+
+
 
         try {
 
@@ -262,11 +282,27 @@ public class DDL {
 
                 String fact = factElement.getElementsByTagName("name").item(0).getTextContent();
                 NodeList aggregateFunctions = factElement.getElementsByTagName("aggregate_function");
+                boolean add_count = false;
 
                 for (int j = 0; j < aggregateFunctions.getLength(); j++) {
                     String agg = aggregateFunctions.item(j).getTextContent();
+                    if(!available_aggs.contains(agg)) {
+                        return "Invalid aggregation function";
+                    }
+                    if(agg.equalsIgnoreCase("avg")) {
+                        add_count = true;
+                    }
+                    if(agg.equalsIgnoreCase("count")) {
+                        add_count = false;
+                    }
                     stmt.setString(1, fact);
                     stmt.setString(2, agg);
+                    stmt.executeUpdate();
+                }
+
+                if(add_count) {
+                    stmt.setString(1, fact);
+                    stmt.setString(2, "count");
                     stmt.executeUpdate();
                 }
 

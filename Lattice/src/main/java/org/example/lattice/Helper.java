@@ -40,6 +40,7 @@ public class Helper {
 
         if(agg.equalsIgnoreCase("sum")) return 0D;
         if(agg.equalsIgnoreCase("count")) return 0D;
+        if(agg.equalsIgnoreCase("avg")) return 0D;
         if(agg.equalsIgnoreCase("max")) return Double.MIN_VALUE;
         if(agg.equalsIgnoreCase("min")) return Double.MAX_VALUE;
 
@@ -52,6 +53,12 @@ public class Helper {
         if(agg.equalsIgnoreCase("max")) return Double.max(a, b);
         if(agg.equalsIgnoreCase("min")) return Double.min(a, b);
         return a;
+    }
+
+    public static Double movingAvg(Double a_avg, Double a_count, Double b_avg, Double b_count) {
+        Double total_sum = a_avg*a_count + b_avg*b_count;
+        Double total_count = a_count + b_count;
+        return total_sum/total_count;
     }
     public static List<List<String>> getCombinations(List<String> columnNames, int level) {
         List<List<String>> combinations = new ArrayList<>();

@@ -36,7 +36,7 @@ public class LatticeController {
         return latticeService.refreshLattice(dbName);
     }
 
-    @GetMapping("/{dbName}/selectTables")
+    @GetMapping("/{dbName}/selectLatticeNode")
     public List<Map<String, Object>> selectTables(@RequestBody Map<String, Boolean> tables, @PathVariable String dbName) {
         return latticeService.selectTables(dbName, tables);
     }

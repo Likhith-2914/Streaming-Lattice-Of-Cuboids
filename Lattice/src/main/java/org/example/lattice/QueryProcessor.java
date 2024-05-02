@@ -93,7 +93,7 @@ public class QueryProcessor {
         }
     }
 
-    public static List<String> getLatticeDetailsOfDimension(String dimensionName, Connection connection) {
+    public static List<String> getLatticeDetailsOfDimension(Connection connection, String dimensionName) {
         List<String> res = new ArrayList<>();
         try {
             String sql = "SELECT lattice_col, type, code FROM lattice_lookup WHERE dimension = ?";
@@ -163,6 +163,27 @@ public class QueryProcessor {
         }
     }
 
+    public static Map<String, Object> getStreamProperty(Connection connection, String property) {
+        Map<String, Object> map = new HashMap<>();
 
+        try {
+            String sql = "SELECT type, count, units FROM streaming_properties WHERE property = ?";
+
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setString(1, property);
+            ResultSet rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                map.put("type", rs.getString("type"));
+                map.put("count", rs.getInt("count"));
+                map.put("units", rs.getString("units"));
+            }
+            return map;
+
+        }
+        catch(Exception e) {
+            return map;
+        }
+    }
 
 }

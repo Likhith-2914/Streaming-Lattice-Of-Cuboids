@@ -7,6 +7,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,7 +67,12 @@ public class LatticeService {
         return "success";
     }
 
-
+    public int getRows(String dbName) {
+        return QueryProcessor.getDataLoaderRowCount(dbName);
+    }
+    public int getTimeDiff(String dbName) {
+        return QueryProcessor.getDataLoaderTimeDiff(dbName);
+    }
 
     public String loadDataFromTuple(String dbname, Map<String, String> data) {
         return dml.loadDataFromTuple(dbname, data);
@@ -77,6 +86,14 @@ public class LatticeService {
         return queryProcessor.selectTables(dbName, columns);
     }
 
-
+    public Map<String, Object> callGetStreamProperty(String dbName) {
+        try {
+            Connection connection = DriverManager.getConnection(JDBC_SERVER + dbName, USER, PWD);
+            return QueryProcessor.getStreamProperty(connection, "tick");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new HashMap<>();
+        }
+    }
 
 }

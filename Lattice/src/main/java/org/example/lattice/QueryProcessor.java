@@ -186,4 +186,50 @@ public class QueryProcessor {
         }
     }
 
+    public static int getDataLoaderRowCount(String dbName) {
+
+        String sql = "SELECT COUNT(*) AS row_count FROM data_loader";
+
+        try {
+            String JDBC_URL = JDBC_SERVER + dbName;
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection(JDBC_URL, USER, PWD);
+
+             Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql);
+
+            if (rs.next()) {
+               return rs.getInt("row_count");
+            }
+            return -1;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    public static int getDataLoaderTimeDiff(String dbName) {
+        int diff = -1;
+        String query = "SELECT TIME_TO_SEC(MAX(time)) - TIME_TO_SEC(MIN(time)) FROM data_loader";
+
+        try {
+            String JDBC_URL = JDBC_SERVER + dbName;
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection connection = DriverManager.getConnection(JDBC_URL, USER, PWD);
+
+            Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(query);
+            if (resultSet.next()) {
+                diff = resultSet.getInt(1);
+            }
+            return diff;
+        }
+        catch(Exception e) {
+            return diff;
+        }
+    }
+
+
+
 }

@@ -92,13 +92,38 @@
         <name>sales</name>
         <aggregate_functions>
             <aggregate_function>sum</aggregate_function>
+            <aggregate_function>avg</aggregate_function>
+        </aggregate_functions>
+    </fact>
+    <fact>
+        <name>discount</name>
+        <aggregate_functions>
             <aggregate_function>max</aggregate_function>
+        </aggregate_functions>
+    </fact>
+    <fact>
+        <name>order_quantity</name>
+        <aggregate_functions>
+            <aggregate_function>sum</aggregate_function>
         </aggregate_functions>
     </fact>
     <fact>
         <name>profit</name>
         <aggregate_functions>
             <aggregate_function>avg</aggregate_function>
+            <aggregate_function>max</aggregate_function>
+        </aggregate_functions>
+    </fact>
+    <fact>
+        <name>shipping_cost</name>
+        <aggregate_functions>
+            <aggregate_function>min</aggregate_function>
+        </aggregate_functions>
+    </fact>
+    <fact>
+        <name>product_base_margin</name>
+        <aggregate_functions>
+            <aggregate_function>max</aggregate_function>
         </aggregate_functions>
     </fact>
 </starSchema>

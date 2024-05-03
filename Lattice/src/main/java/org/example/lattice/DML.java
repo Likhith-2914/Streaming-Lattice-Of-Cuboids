@@ -25,6 +25,7 @@ public class DML {
             Map<String, Double> fact_values = new HashMap<>();
             List<String> facts = QueryProcessor.getFactNames(connection);
 
+
             for(String fact: facts) {
                 fact_values.put(fact, Double.parseDouble(tuple.get(fact)));
                 tuple.remove(fact);
@@ -108,11 +109,16 @@ public class DML {
             }
             selectQuery.deleteCharAt(selectQuery.length()-1);
             selectQuery.deleteCharAt(selectQuery.length()-1);
-            selectQuery.append(" FROM (SELECT * FROM data_loader ");
+            selectQuery.append(" FROM ");
 
             if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
-                selectQuery.append("ORDER BY id LIMIT ").append(velocity.get("count").toString());
+                selectQuery.append("(SELECT * FROM data_loader ORDER BY id LIMIT ").append(velocity.get("count").toString());
                 selectQuery.append(") AS velocity_table ");
+            }
+            else if(velocity.get("type").toString().equalsIgnoreCase("logical")) {
+                selectQuery.append("(WITH slide_window AS (SELECT MIN(time) AS start, MIN(time) + INTERVAL ")
+                        .append(velocity.get("count").toString()).append(" SECOND AS end FROM data_loader)")
+                        .append("SELECT * FROM data_loader WHERE time BETWEEN (SELECT start FROM slide_window) AND (SELECT end FROM slide_window) ) AS velocity_table ");
             }
 
             selectQuery.append("GROUP BY ");
@@ -122,7 +128,7 @@ public class DML {
             }
             selectQuery.deleteCharAt(selectQuery.length()-1);
             selectQuery.deleteCharAt(selectQuery.length()-1);
-
+            System.out.println(selectQuery);
 
             StringBuilder tableName = new StringBuilder("lattice_");
             for (String col : cols) {
@@ -248,11 +254,16 @@ public class DML {
         }
         selectQuery.deleteCharAt(selectQuery.length()-1);
         selectQuery.deleteCharAt(selectQuery.length()-1);
-        selectQuery.append(" FROM (SELECT * FROM data_loader ");
+        selectQuery.append(" FROM ");
 
         if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
             selectQuery.append("ORDER BY id LIMIT ").append(velocity.get("count").toString());
             selectQuery.append(") AS velocity_table");
+        }
+        else if(velocity.get("type").toString().equalsIgnoreCase("logical")) {
+            selectQuery.append("(WITH slide_window AS (SELECT MIN(time) AS start, MIN(time) + INTERVAL ")
+                    .append(velocity.get("count").toString()).append(" SECOND AS end FROM data_loader)")
+                    .append("SELECT * FROM data_loader WHERE time BETWEEN (SELECT start FROM slide_window) AND (SELECT end FROM slide_window) ) AS velocity_table ");
         }
 
 
@@ -331,9 +342,14 @@ public class DML {
     private static String deleteFromDataLoader(Connection connection, Map<String, Object> velocity) {
 
         try {
-            StringBuilder sql = new StringBuilder("DELETE FROM data_loader ");
+            StringBuilder sql = new StringBuilder();
             if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
-                sql.append("ORDER BY id LIMIT ").append(velocity.get("count"));
+                sql.append("DELETE FROM data_loader ORDER BY id LIMIT ").append(velocity.get("count"));
+            }
+            else if(velocity.get("type").toString().equalsIgnoreCase("logical")) {
+                sql.append("WITH slide_window AS (SELECT MIN(time) AS start, MIN(time) + INTERVAL ")
+                        .append(velocity.get("count").toString()).append(" SECOND AS end FROM data_loader)")
+                        .append("DELETE FROM data_loader WHERE time BETWEEN (SELECT start FROM slide_window) AND (SELECT end FROM slide_window)");
             }
 
             Statement stmt = connection.createStatement();
@@ -435,8 +451,8 @@ public class DML {
 
         } catch (SQLIntegrityConstraintViolationException e) {
             e.printStackTrace();
-            return "Invalid data provided.. Metadata for at least one dimension is not specified\n" + e.getMessage();
-
+//            return "Invalid data provided.. Metadata for at least one dimension is not specified\n" + e.getMessage();
+            return "data not found";
         }
         catch (Exception e) {
             e.printStackTrace();

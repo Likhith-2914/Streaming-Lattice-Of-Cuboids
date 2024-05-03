@@ -31,7 +31,6 @@ public class LatticeController {
 
     @PostMapping("/{dbName}/uploadDataFromTuple")
     public String uploadDataFromTuple(@RequestBody Map<String, String> data, @PathVariable String dbName) {
-
         return latticeService.loadDataFromTuple(dbName, data);
     }
 
@@ -43,5 +42,22 @@ public class LatticeController {
     @GetMapping("/{dbName}/selectLatticeNode")
     public List<Map<String, Object>> selectTables(@RequestBody Map<String, Boolean> tables, @PathVariable String dbName) {
         return latticeService.selectTables(dbName, tables);
+    }
+
+    @GetMapping("/{dbName}/getRows")
+    public int selectTables(@PathVariable String dbName)
+    {
+        return latticeService.getRows(dbName);
+    }
+
+    @GetMapping("/{dbName}/getTimeDiff")
+    public int selectTimeDiff(@PathVariable String dbName)
+    {
+        return latticeService.getTimeDiff(dbName);
+    }
+
+    @GetMapping("/{dbName}/getTicks")
+    public Map<String, Object> getTicks(@PathVariable String dbName) {
+        return latticeService.callGetStreamProperty(dbName);
     }
 }

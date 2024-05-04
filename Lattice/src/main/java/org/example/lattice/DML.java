@@ -257,7 +257,7 @@ public class DML {
         selectQuery.append(" FROM ");
 
         if(velocity.get("type").toString().equalsIgnoreCase("physical")) {
-            selectQuery.append("ORDER BY id LIMIT ").append(velocity.get("count").toString());
+            selectQuery.append("(SELECT * FROM data_loader ORDER BY id LIMIT ").append(velocity.get("count").toString());
             selectQuery.append(") AS velocity_table");
         }
         else if(velocity.get("type").toString().equalsIgnoreCase("logical")) {
@@ -301,7 +301,7 @@ public class DML {
 
 
         try {
-
+            System.out.println(selectQuery);
             PreparedStatement preparedStatement = connection.prepareStatement(selectQuery.toString());
             ResultSet resultSet = preparedStatement.executeQuery();
 
@@ -324,7 +324,11 @@ public class DML {
                 for (String fact : facts) {
                     String agg = fact.split(regex)[0].toLowerCase();
                     String factName = fact.split(regex)[1];
-                    updateStatement.setObject(i, Helper.mergeAgg(existingRec.get(agg+"_"+factName), resultSet.getDouble(agg+"_"+factName), agg));
+                    if(!agg.equalsIgnoreCase("avg"))
+                        updateStatement.setObject(i, Helper.mergeAgg(existingRec.get(agg+"_"+factName), resultSet.getDouble(agg+"_"+factName), agg));
+                    else
+                        updateStatement.setObject(i, Helper.movingAvg(existingRec.get("avg"+"_"+factName), (existingRec.get("count"+"_"+factName)),
+                                resultSet.getDouble("avg"+"_"+factName), resultSet.getDouble("count"+"_"+factName)));
                     i += 1;
                 }
                 updateStatement.executeUpdate();

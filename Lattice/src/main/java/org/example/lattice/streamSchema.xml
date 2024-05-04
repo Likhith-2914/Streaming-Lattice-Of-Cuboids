@@ -4,7 +4,7 @@
     <databaseName>market_db</databaseName>
     <tick>
         <tick_type>logical</tick_type>
-        <tick_count>10</tick_count>
+        <tick_count>5</tick_count>
         <tick_units>seconds</tick_units>
     </tick  >
     <velocity>

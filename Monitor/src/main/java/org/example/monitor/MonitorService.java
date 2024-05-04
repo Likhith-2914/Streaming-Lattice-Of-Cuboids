@@ -30,6 +30,7 @@ public class MonitorService {
 
         if (type.equalsIgnoreCase("physical")) {
             tick_count = tickCount;
+            System.out.println(tickCount);
             tick_type = "physical";
         }
         else if(type.equalsIgnoreCase("logical")) {

@@ -46,7 +46,7 @@ public class StreamerService {
                     System.exit(2);
                 }
                 else if(responseEntity.getBody().equalsIgnoreCase("data not found")){
-                    System.out.println(responseEntity.getBody());
+                    System.out.println("Metadata not found for at least one dimension");
                 }
                 else if(!responseEntity.getBody().equalsIgnoreCase("success")){
                     System.out.println(responseEntity.getBody());

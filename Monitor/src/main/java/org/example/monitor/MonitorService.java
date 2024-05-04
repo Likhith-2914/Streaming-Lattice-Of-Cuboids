@@ -28,17 +28,17 @@ public class MonitorService {
         Integer tickCount = (Integer) ticksInfo.get("count");
         String type = (String) ticksInfo.get("type");
 
-        if (type.equalsIgnoreCase("Physical")) {
+        if (type.equalsIgnoreCase("physical")) {
             tick_count = tickCount;
             tick_type = "physical";
         }
-        else {
+        else if(type.equalsIgnoreCase("logical")) {
             tick_count = tickCount;
             tick_type = "logical";
         }
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 1000)
     public void refreshLattice() {
         if(tick_type.equalsIgnoreCase("physical")) {
             physicalRefreshLattice();

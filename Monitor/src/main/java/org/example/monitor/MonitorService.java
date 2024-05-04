@@ -20,6 +20,7 @@ public class MonitorService {
     private static final String dbName = "market_db";
     private int tick_count = 0;
     private String tick_type = "";
+    private String tick_units = "";
 
 
     @PostConstruct
@@ -27,17 +28,23 @@ public class MonitorService {
         Map<String, Object> ticksInfo = getTicks();
         Integer tickCount = (Integer) ticksInfo.get("count");
         String type = (String) ticksInfo.get("type");
+        String units = (String) ticksInfo.get("units");
+        int factor = 1;
+        if(units.equalsIgnoreCase("minutes")) factor = 60;
+        else if(units.equalsIgnoreCase("hours")) factor = 60*60;
+        else if(units.equalsIgnoreCase("days")) factor = 24*60*60;
 
         if (type.equalsIgnoreCase("physical")) {
             tick_count = tickCount;
-            System.out.println(tickCount);
             tick_type = "physical";
         }
         else if(type.equalsIgnoreCase("logical")) {
-            tick_count = tickCount;
+            tick_count = tickCount*factor;
+            tick_units = units;
             tick_type = "logical";
         }
     }
+
 
     @Scheduled(fixedDelay = 1000)
     public void refreshLattice() {
